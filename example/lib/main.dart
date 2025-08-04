@@ -53,8 +53,12 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isScanning = false;
   bool _isConnecting = false;
   bool _isMeasuring = false;
+
   String _statusMessage = 'Select operation mode and scan for devices';
+  String? _lastKnownMacAddress;
   StreamSubscription<TemperatureReading>? _temperatureSubscription;
+  StreamSubscription<bool>? _connectionStatusSubscription;
+  Timer? _autoReconnectTimer;
 
   @override
   void initState() {
@@ -65,6 +69,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _temperatureSubscription?.cancel();
+    _connectionStatusSubscription?.cancel();
+    _autoReconnectTimer?.cancel();
     _rayTempBlueContinuous?.dispose();
     _rayTempBlueHold?.dispose();
     _temperatureController.dispose();
@@ -72,12 +78,28 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _initializeMode() {
+    // Cancel previous subscriptions
+    _connectionStatusSubscription?.cancel();
+    _autoReconnectTimer?.cancel();
+
     if (_selectedMode == OperationMode.continuous) {
       _rayTempBlueContinuous = RayTempBlue();
       _rayTempBlueHold = null;
     } else {
       _rayTempBlueHold = RayTempBlueHold();
       _rayTempBlueContinuous = null;
+
+      // Setup connection status monitoring for HOLD mode
+      _connectionStatusSubscription = _rayTempBlueHold!.connectionStatusStream.listen(
+        (isConnected) {
+          setState(() {
+            if (!isConnected && _selectedDevice != null) {
+              _statusMessage = 'Connection lost. Attempting to reconnect...';
+              _startAutoReconnect();
+            }
+          });
+        },
+      );
     }
     _checkPermissions();
   }
@@ -204,6 +226,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
         setState(() {
           _selectedDevice = device;
+          _lastKnownMacAddress = device.address;
           _statusMessage = 'Connected to ${device.name} in HOLD mode. If you see continuous readings, turn off/on the device to reset to HOLD mode.';
         });
       }
@@ -284,6 +307,36 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _startAutoReconnect() {
+    if (_selectedMode != OperationMode.hold || _lastKnownMacAddress == null) return;
+
+    _autoReconnectTimer?.cancel();
+    _autoReconnectTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _attemptAutoReconnect(),
+    );
+  }
+
+  Future<void> _attemptAutoReconnect() async {
+    if (_isConnecting || _rayTempBlueHold == null || _lastKnownMacAddress == null) return;
+
+    try {
+      setState(() {
+        _statusMessage = 'Attempting to reconnect...';
+      });
+
+      await _rayTempBlueHold!.connectByMacAddress(_lastKnownMacAddress!);
+
+      setState(() {
+        _statusMessage = 'Reconnected successfully';
+      });
+
+      _autoReconnectTimer?.cancel();
+    } catch (e) {
+      // Reconnection failed, will try again in 10 seconds
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,7 +350,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            // Mode selector
+            // Mode selector with connection status
             Card(
               color: _selectedMode == OperationMode.continuous
                   ? Colors.blue.shade50
@@ -307,24 +360,59 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(
-                          _selectedMode == OperationMode.continuous
-                              ? Icons.play_circle_outline
-                              : Icons.pause_circle_outline,
-                          size: 32,
-                          color: _selectedMode == OperationMode.continuous
-                              ? Colors.blue
-                              : Colors.orange,
+                        Row(
+                          children: [
+                            Icon(
+                              _selectedMode == OperationMode.continuous
+                                  ? Icons.play_circle_outline
+                                  : Icons.pause_circle_outline,
+                              size: 32,
+                              color: _selectedMode == OperationMode.continuous
+                                  ? Colors.blue
+                                  : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedMode == OperationMode.continuous
+                                  ? 'CONTINUOUS MODE'
+                                  : 'HOLD MODE',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _selectedMode == OperationMode.continuous
-                              ? 'CONTINUOUS MODE'
-                              : 'HOLD MODE',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
+                        // Connection status indicator
+                        if (_selectedDevice != null)
+                          Row(
+                            children: [
+                              Icon(
+                                (_selectedMode == OperationMode.continuous && _rayTempBlueContinuous?.isConnected == true) ||
+                                (_selectedMode == OperationMode.hold && _rayTempBlueHold?.isConnected == true)
+                                    ? Icons.bluetooth_connected
+                                    : Icons.bluetooth_disabled,
+                                color: (_selectedMode == OperationMode.continuous && _rayTempBlueContinuous?.isConnected == true) ||
+                                       (_selectedMode == OperationMode.hold && _rayTempBlueHold?.isConnected == true)
+                                    ? Colors.green
+                                    : Colors.red,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                (_selectedMode == OperationMode.continuous && _rayTempBlueContinuous?.isConnected == true) ||
+                                (_selectedMode == OperationMode.hold && _rayTempBlueHold?.isConnected == true)
+                                    ? 'Connected'
+                                    : 'Disconnected',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: (_selectedMode == OperationMode.continuous && _rayTempBlueContinuous?.isConnected == true) ||
+                                         (_selectedMode == OperationMode.hold && _rayTempBlueHold?.isConnected == true)
+                                      ? Colors.green
+                                      : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                     const SizedBox(height: 8),

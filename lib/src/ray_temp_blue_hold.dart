@@ -32,9 +32,12 @@ class RayTempBlueHold {
   BluetoothCharacteristic? _commandCharacteristic;
   BluetoothCharacteristic? _settingsCharacteristic;
 
-  final StreamController<TemperatureReading> _temperatureController = 
+  final StreamController<TemperatureReading> _temperatureController =
       StreamController<TemperatureReading>.broadcast();
-  
+
+  final StreamController<bool> _connectionStatusController =
+      StreamController<bool>.broadcast();
+
   StreamSubscription<List<int>>? _sensor1Subscription;
   StreamSubscription<List<int>>? _commandSubscription;
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
@@ -45,6 +48,9 @@ class RayTempBlueHold {
 
   /// Stream of temperature readings from the device (only when button pressed or manually triggered).
   Stream<TemperatureReading> get temperatureStream => _temperatureController.stream;
+
+  /// Stream of connection status changes (true = connected, false = disconnected).
+  Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
 
   /// Whether the device is currently connected.
   bool get isConnected => _isConnected;
@@ -198,6 +204,33 @@ class RayTempBlueHold {
     }
   }
 
+  /// Scans and connects to the first Ray Temp Blue device found.
+  ///
+  /// Returns the connected device or null if no device found.
+  /// Useful for automatic connection scenarios.
+  Future<RayTempDevice?> scanAndConnectFirst({Duration scanTimeout = const Duration(seconds: 10)}) async {
+    final devices = await scanDevices(timeout: scanTimeout);
+    if (devices.isEmpty) return null;
+
+    await connect(devices.first);
+    return devices.first;
+  }
+
+  /// Connects to a Ray Temp Blue device by MAC address.
+  ///
+  /// This method scans for devices and connects to the first one matching the MAC address.
+  /// Useful for automatic reconnection scenarios.
+  Future<void> connectByMacAddress(String macAddress, {Duration scanTimeout = const Duration(seconds: 10)}) async {
+    final devices = await scanDevices(timeout: scanTimeout);
+    final targetDevice = devices.where((device) => device.address.toUpperCase() == macAddress.toUpperCase()).firstOrNull;
+
+    if (targetDevice == null) {
+      throw RayTempConnectionException('Device with MAC address $macAddress not found');
+    }
+
+    await connect(targetDevice);
+  }
+
   /// Connects to a specific Ray Temp Blue device and ensures it stays in HOLD mode.
   Future<void> connect(RayTempDevice device) async {
     if (_isConnected) {
@@ -211,8 +244,14 @@ class RayTempBlueHold {
 
       // Listen for connection state changes
       _connectionSubscription = device.device.connectionState.listen((state) {
+        final wasConnected = _isConnected;
         _isConnected = state == BluetoothConnectionState.connected;
-        if (!_isConnected) {
+
+        // Emit connection status change
+        _connectionStatusController.add(_isConnected);
+
+        if (!_isConnected && wasConnected) {
+          // Connection lost
           _cleanup();
         }
       });
@@ -270,6 +309,7 @@ class RayTempBlueHold {
       await _enableNotifications();
 
       _isConnected = true;
+      _connectionStatusController.add(true);
     } catch (e) {
       _cleanup();
       if (e is RayTempException) {
@@ -343,6 +383,7 @@ class RayTempBlueHold {
   void dispose() {
     disconnect();
     _temperatureController.close();
+    _connectionStatusController.close();
   }
 
   /// Reads the instrument settings to determine the current temperature unit.
@@ -463,12 +504,18 @@ class RayTempBlueHold {
 
   /// Cleans up resources and subscriptions.
   void _cleanup() {
+    final wasConnected = _isConnected;
     _isConnected = false;
     _waitingForMeasurement = false;
     _connectedDevice = null;
     _sensor1Characteristic = null;
     _commandCharacteristic = null;
     _settingsCharacteristic = null;
+
+    // Emit disconnection status if we were connected
+    if (wasConnected) {
+      _connectionStatusController.add(false);
+    }
 
     _sensor1Subscription?.cancel();
     _sensor1Subscription = null;
