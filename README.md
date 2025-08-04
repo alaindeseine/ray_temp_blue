@@ -12,6 +12,9 @@ A Flutter package for interfacing with Ray Temp Blue Bluetooth LE thermometer de
 - 🔍 **Device identification** - Make the device flash its LEDs for identification
 - 📊 **Unit conversion** - Support for Celsius and Fahrenheit with conversion methods
 - ⚡ **Exception handling** - Comprehensive error handling with specific exception types
+- 🔌 **Connection monitoring** - Real-time connection status with automatic reconnection
+- 🔄 **Auto-reconnection** - Intelligent reconnection when connection is lost (HOLD mode)
+- 📍 **MAC address connection** - Direct connection by device MAC address
 
 ### Operation Modes
 
@@ -47,7 +50,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ray_temp_blue: ^0.1.0
+  ray_temp_blue: ^1.0.0
 ```
 
 ### Android Configuration
@@ -272,6 +275,43 @@ rayTempBlue.temperatureStream.listen((reading) {
 });
 ```
 
+#### Connection Status Monitoring
+
+```dart
+// Monitor connection status in real-time (HOLD mode only)
+rayTempBlueHold.connectionStatusStream.listen((isConnected) {
+  if (isConnected) {
+    print('Device connected');
+    updateUI(connectionStatus: 'Connected');
+  } else {
+    print('Device disconnected');
+    updateUI(connectionStatus: 'Disconnected - Reconnecting...');
+  }
+});
+```
+
+#### Automatic Reconnection
+
+```dart
+// Automatic reconnection by MAC address (HOLD mode)
+String savedMacAddress = 'AA:BB:CC:DD:EE:FF';
+
+try {
+  await rayTempBlueHold.connectByMacAddress(savedMacAddress);
+  print('Reconnected successfully');
+} catch (e) {
+  print('Reconnection failed: $e');
+}
+
+// Scan and connect to first device found
+final device = await rayTempBlueHold.scanAndConnectFirst();
+if (device != null) {
+  print('Auto-connected to: ${device.name}');
+  // Save MAC address for future reconnections
+  savedMacAddress = device.address;
+}
+```
+
 #### Error Handling
 
 ```dart
@@ -297,9 +337,9 @@ try {
 
 ## API Reference
 
-### RayTempBlue
+### RayTempBlue (Continuous Mode)
 
-Main class for interfacing with Ray Temp Blue devices.
+Main class for continuous temperature monitoring.
 
 #### Properties
 
@@ -314,6 +354,30 @@ Main class for interfacing with Ray Temp Blue devices.
 - `Future<void> connect(RayTempDevice device)` - Connect to a specific device
 - `Future<void> disconnect()` - Disconnect from current device
 - `Future<void> triggerMeasurement()` - Manually trigger a measurement
+- `Future<void> identifyDevice()` - Make device flash LEDs for identification
+- `void dispose()` - Clean up resources
+
+### RayTempBlueHold (HOLD Mode)
+
+Class for manual temperature measurements with connection monitoring.
+
+#### Properties
+
+- `Stream<TemperatureReading> temperatureStream` - Stream of temperature readings (manual only)
+- `Stream<bool> connectionStatusStream` - Stream of connection status changes
+- `bool isConnected` - Whether a device is currently connected
+- `bool isWaitingForMeasurement` - Whether a measurement is in progress
+- `RayTempDevice? connectedDevice` - Currently connected device information
+
+#### Methods
+
+- `Future<void> verifyPermissions()` - Verify and request Bluetooth permissions
+- `Future<List<RayTempDevice>> scanDevices({Duration timeout})` - Scan for devices
+- `Future<RayTempDevice?> scanAndConnectFirst({Duration timeout})` - Scan and auto-connect to first device
+- `Future<void> connect(RayTempDevice device)` - Connect to a specific device
+- `Future<void> connectByMacAddress(String macAddress, {Duration timeout})` - Connect by MAC address
+- `Future<void> disconnect()` - Disconnect from current device
+- `Future<TemperatureReading> triggerMeasurement()` - Manually trigger and return measurement
 - `Future<void> identifyDevice()` - Make device flash LEDs for identification
 - `void dispose()` - Clean up resources
 
@@ -363,12 +427,29 @@ The package provides specific exception types for different error scenarios:
 
 See the `/example` folder for a complete example application that demonstrates:
 
-- Device scanning and selection
-- Connection management
-- Real-time temperature display
-- Manual measurement triggering
-- Device identification
-- Error handling
+- **Mode Selection** - Switch between Continuous and HOLD modes
+- **Device scanning and selection** - Automatic device discovery
+- **Connection management** - Real-time connection status monitoring
+- **Auto-reconnection** - Automatic reconnection when connection is lost (HOLD mode)
+- **Real-time temperature display** - Live temperature updates
+- **Manual measurement triggering** - On-demand temperature readings
+- **Device identification** - LED flashing for device identification
+- **Visual status indicators** - Connection status with color-coded icons
+- **Error handling** - Comprehensive error management and user feedback
+
+### Running the Example
+
+```bash
+cd example
+flutter run lib/main.dart
+```
+
+The example app includes:
+- **Integrated mode selector** with visual indicators
+- **Real-time Bluetooth connection status** (green/red icons)
+- **Automatic reconnection** in HOLD mode
+- **Scrollable interface** to prevent overflow issues
+- **Professional UI** suitable for production use
 
 ## Contributing
 

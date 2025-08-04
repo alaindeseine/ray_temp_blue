@@ -1,3 +1,41 @@
+## 1.0.0+stable
+
+### Stable Release - Production Ready
+
+* **Connection Status Monitoring**
+  * Real-time connection status stream via `connectionStatusStream`
+  * Automatic connection loss detection and recovery
+  * Visual connection status indicators in example app
+
+* **Automatic Reconnection (HOLD Mode)**
+  * Automatic reconnection every 10 seconds when connection is lost
+  * MAC address-based reconnection for faster pairing
+  * Smart reconnection only when device was previously connected
+
+* **Enhanced Connection Methods**
+  * `scanAndConnectFirst()` - Scan and connect to first device found
+  * `connectByMacAddress(String macAddress)` - Direct connection by MAC address
+  * Improved connection reliability and error handling
+
+* **Example App Improvements**
+  * Integrated mode selector with connection status display
+  * Real-time Bluetooth connection indicator (green/red)
+  * Automatic reconnection status messages
+  * Enhanced user experience with visual feedback
+
+* **Bug Fixes**
+  * Fixed HOLD mode implementation - no longer activates sensor notifications
+  * Resolved overflow issues in example app with scrollable interface
+  * Improved error handling and user feedback
+
+* **Dependencies Updated**
+  * flutter_blue_plus: ^1.35.5 (was ^1.32.12)
+  * permission_handler: ^12.0.1 (was ^11.3.1)
+
+### Breaking Changes
+* HOLD mode now works correctly by reading sensor manually instead of using notifications
+* Connection status monitoring requires listening to `connectionStatusStream`
+
 ## 0.1.0
 
 ### Initial Release
