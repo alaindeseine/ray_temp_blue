@@ -1,6 +1,6 @@
 name: ray_temp_blue
 description: "Flutter package for interfacing with Ray Temp Blue Bluetooth LE thermometer. Automatically captures temperature measurements when the device button is pressed."
-version: 0.1.0
+version: 1.0.0+stable
 homepage: https://github.com/your-org/ray_temp_blue
 repository: https://github.com/your-org/ray_temp_blue
 issue_tracker: https://github.com/your-org/ray_temp_blue/issues
