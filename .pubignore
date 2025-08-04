@@ -1,0 +1,28 @@
+# Files and directories to exclude from pub package
+
+# Development files
+docs/project_summary.md
+specifications_ray_temp_blue.md
+docs/DEVELOPMENT.md
+
+# Build artifacts
+build/
+.dart_tool/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Example app (will be included separately)
+example/android/
+example/ios/
+example/build/
+example/.dart_tool/
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp

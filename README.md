@@ -1,39 +1,383 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Ray Temp Blue
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+A Flutter package for interfacing with Ray Temp Blue Bluetooth LE thermometer devices. This package allows you to automatically capture temperature measurements when the device button is pressed and stream them to your Flutter application.
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- 🌡️ **Two operation modes** - Continuous mode and HOLD mode for different use cases
+- 📱 **Easy device discovery** - Scan and connect to Ray Temp Blue devices
+- 🔄 **Real-time streaming** - Stream temperature readings to your app
+- 🛡️ **Permission handling** - Automatic Bluetooth permission management for Android
+- 🎯 **Manual triggering** - Programmatically trigger measurements
+- 🔍 **Device identification** - Make the device flash its LEDs for identification
+- 📊 **Unit conversion** - Support for Celsius and Fahrenheit with conversion methods
+- ⚡ **Exception handling** - Comprehensive error handling with specific exception types
 
-## Getting started
+### Operation Modes
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+**Continuous Mode (`RayTempBlue`)**
+- Automatic continuous temperature measurements
+- Real-time temperature updates in your app
+- Ideal for monitoring applications
+
+**HOLD Mode (`RayTempBlueHold`)**
+- Manual measurements only (button press or programmatic trigger)
+- Maintains the device's original HOLD behavior
+- Ideal for on-demand measurements
+
+## Supported Devices
+
+This package is designed for Ray Temp Blue infrared thermometer devices that use the BlueTherm LE protocol:
+
+- Ray Temp Blue (ETI Ltd)
+- Temperature range: -50°C to 350°C
+- Bluetooth LE with ETI's proprietary protocol
+
+## Getting Started
+
+### Prerequisites
+
+- Flutter 3.0.0 or higher
+- Android device with Bluetooth LE support
+- Ray Temp Blue thermometer device
+
+### Installation
+
+Add this package to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  ray_temp_blue: ^0.1.0
+```
+
+### Android Configuration
+
+The package automatically handles Bluetooth permissions, but you need to ensure your `android/app/src/main/AndroidManifest.xml` includes the necessary permissions:
+
+```xml
+<!-- Bluetooth permissions for Android < 12 -->
+<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+
+<!-- Bluetooth permissions for Android >= 12 -->
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+<!-- Declare that the app uses Bluetooth LE -->
+<uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+### Continuous Mode Example
 
 ```dart
-const like = 'sample';
+import 'package:ray_temp_blue/ray_temp_blue.dart';
+
+class ContinuousTemperatureScreen extends StatefulWidget {
+  @override
+  _ContinuousTemperatureScreenState createState() => _ContinuousTemperatureScreenState();
+}
+
+class _ContinuousTemperatureScreenState extends State<ContinuousTemperatureScreen> {
+  final RayTempBlue _rayTempBlue = RayTempBlue();
+  final TextEditingController _temperatureController = TextEditingController();
+  StreamSubscription<TemperatureReading>? _temperatureSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeDevice();
+  }
+
+  Future<void> _initializeDevice() async {
+    try {
+      // Verify permissions
+      await _rayTempBlue.verifyPermissions();
+
+      // Scan for devices
+      final devices = await _rayTempBlue.scanDevices();
+
+      if (devices.isNotEmpty) {
+        // Connect to the first device found
+        await _rayTempBlue.connect(devices.first);
+
+        // Listen to continuous temperature readings
+        _temperatureSubscription = _rayTempBlue.temperatureStream.listen(
+          (reading) {
+            setState(() {
+              _temperatureController.text = '${reading.value.toStringAsFixed(1)}°C';
+            });
+          },
+        );
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Continuous Temperature Monitor')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _temperatureController,
+              decoration: InputDecoration(
+                labelText: 'Temperature (Live)',
+                suffixText: '°C',
+              ),
+              readOnly: true,
+            ),
+            Text('Temperature updates automatically'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _temperatureSubscription?.cancel();
+    _rayTempBlue.dispose();
+    super.dispose();
+  }
+}
 ```
 
-## Additional information
+### HOLD Mode Example
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```dart
+import 'package:ray_temp_blue/ray_temp_blue.dart';
+
+class HoldTemperatureScreen extends StatefulWidget {
+  @override
+  _HoldTemperatureScreenState createState() => _HoldTemperatureScreenState();
+}
+
+class _HoldTemperatureScreenState extends State<HoldTemperatureScreen> {
+  final RayTempBlueHold _rayTempBlue = RayTempBlueHold();
+  final TextEditingController _temperatureController = TextEditingController();
+  StreamSubscription<TemperatureReading>? _temperatureSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeDevice();
+  }
+
+  Future<void> _initializeDevice() async {
+    try {
+      // Verify permissions
+      await _rayTempBlue.verifyPermissions();
+
+      // Scan for devices
+      final devices = await _rayTempBlue.scanDevices();
+
+      if (devices.isNotEmpty) {
+        // Connect to the first device found
+        await _rayTempBlue.connect(devices.first);
+
+        // Listen to temperature readings (only when button pressed)
+        _temperatureSubscription = _rayTempBlue.temperatureStream.listen(
+          (reading) {
+            setState(() {
+              _temperatureController.text = '${reading.value.toStringAsFixed(1)}°C';
+            });
+          },
+        );
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  Future<void> _takeMeasurement() async {
+    try {
+      final reading = await _rayTempBlue.triggerMeasurement();
+      setState(() {
+        _temperatureController.text = '${reading.value.toStringAsFixed(1)}°C';
+      });
+    } catch (e) {
+      print('Measurement error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('HOLD Mode Temperature')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _temperatureController,
+              decoration: InputDecoration(
+                labelText: 'Temperature (On Demand)',
+                suffixText: '°C',
+              ),
+              readOnly: true,
+            ),
+            ElevatedButton(
+              onPressed: _takeMeasurement,
+              child: Text('Take Measurement'),
+            ),
+            Text('Or press the device button'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _temperatureSubscription?.cancel();
+    _rayTempBlue.dispose();
+    super.dispose();
+  }
+}
+```
+
+### Advanced Usage
+
+#### Device Discovery and Selection
+
+```dart
+// Scan for available devices
+final devices = await rayTempBlue.scanDevices(timeout: Duration(seconds: 10));
+
+// Display devices to user for selection
+for (final device in devices) {
+  print('Found: ${device.name} (${device.serialNumber}) - ${device.rssi}dBm');
+}
+
+// Connect to selected device
+await rayTempBlue.connect(selectedDevice);
+```
+
+#### Temperature Unit Handling
+
+```dart
+rayTempBlue.temperatureStream.listen((reading) {
+  print('Temperature: ${reading.value.toStringAsFixed(1)}°C');
+  print('In Fahrenheit: ${reading.toFahrenheit().toStringAsFixed(1)}°F');
+  print('In Kelvin: ${reading.toKelvin().toStringAsFixed(1)}K');
+  print('Original unit: ${reading.originalUnit.displayName}');
+  print('Timestamp: ${reading.timestamp}');
+});
+```
+
+#### Error Handling
+
+```dart
+try {
+  await rayTempBlue.connect(device);
+} on RayTempPermissionException catch (e) {
+  print('Permission error: ${e.message}');
+  print('Missing permissions: ${e.missingPermissions}');
+} on RayTempConnectionException catch (e) {
+  print('Connection error: ${e.message}');
+  if (e.deviceAddress != null) {
+    print('Failed device: ${e.deviceAddress}');
+  }
+} on RayTempSensorException catch (e) {
+  print('Sensor error: ${e.message}');
+  if (e.errorCode != null) {
+    print('Error code: 0x${e.errorCode!.toRadixString(16)}');
+  }
+} catch (e) {
+  print('Unexpected error: $e');
+}
+```
+
+## API Reference
+
+### RayTempBlue
+
+Main class for interfacing with Ray Temp Blue devices.
+
+#### Properties
+
+- `Stream<TemperatureReading> temperatureStream` - Stream of temperature readings
+- `bool isConnected` - Whether a device is currently connected
+- `RayTempDevice? connectedDevice` - Currently connected device information
+
+#### Methods
+
+- `Future<void> verifyPermissions()` - Verify and request Bluetooth permissions
+- `Future<List<RayTempDevice>> scanDevices({Duration timeout})` - Scan for devices
+- `Future<void> connect(RayTempDevice device)` - Connect to a specific device
+- `Future<void> disconnect()` - Disconnect from current device
+- `Future<void> triggerMeasurement()` - Manually trigger a measurement
+- `Future<void> identifyDevice()` - Make device flash LEDs for identification
+- `void dispose()` - Clean up resources
+
+### TemperatureReading
+
+Represents a temperature measurement from the device.
+
+#### Properties
+
+- `double value` - Temperature value in Celsius
+- `TemperatureUnit originalUnit` - Original unit from the device
+- `DateTime timestamp` - When the measurement was taken
+
+#### Methods
+
+- `double toCelsius()` - Convert to Celsius (returns value as-is)
+- `double toFahrenheit()` - Convert to Fahrenheit
+- `double toKelvin()` - Convert to Kelvin
+- `double toOriginalUnit()` - Convert to the device's original unit
+
+### RayTempDevice
+
+Represents a discovered Ray Temp Blue device.
+
+#### Properties
+
+- `BluetoothDevice device` - Underlying Bluetooth device
+- `String name` - Device name
+- `String serialNumber` - Device serial number
+- `int rssi` - Signal strength when discovered
+- `String address` - Device MAC address
+- `bool isConnected` - Current connection status
+
+## Exception Types
+
+The package provides specific exception types for different error scenarios:
+
+- `RayTempPermissionException` - Bluetooth permission issues
+- `RayTempBluetoothException` - Bluetooth not available or disabled
+- `RayTempConnectionException` - Device connection failures
+- `RayTempSensorException` - Sensor errors (e.g., error code 0xFFFFFFFF)
+- `RayTempScanException` - Device scanning failures
+- `RayTempServiceException` - Bluetooth service/characteristic not found
+- `RayTempDataException` - Data parsing errors
+
+## Example App
+
+See the `/example` folder for a complete example application that demonstrates:
+
+- Device scanning and selection
+- Connection management
+- Real-time temperature display
+- Manual measurement triggering
+- Device identification
+- Error handling
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For issues and feature requests, please use the [GitHub issue tracker](https://github.com/your-org/ray_temp_blue/issues).

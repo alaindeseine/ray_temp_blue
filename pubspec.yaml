@@ -1,15 +1,19 @@
 name: ray_temp_blue
-description: "A new Flutter package project."
-version: 0.0.1
-homepage:
+description: "Flutter package for interfacing with Ray Temp Blue Bluetooth LE thermometer. Automatically captures temperature measurements when the device button is pressed."
+version: 0.1.0
+homepage: https://github.com/your-org/ray_temp_blue
+repository: https://github.com/your-org/ray_temp_blue
+issue_tracker: https://github.com/your-org/ray_temp_blue/issues
 
 environment:
   sdk: ^3.8.1
-  flutter: ">=1.17.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
+  flutter_blue_plus: ^1.32.12
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
