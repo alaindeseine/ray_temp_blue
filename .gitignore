@@ -9,6 +9,12 @@
 .history
 .svn/
 migrate_working_dir/
+CLAUDE.md
+log.txt
+example/MODE_SELECTOR_GUIDE*.md
+example/TROUBLESHOOTING.md
+example/test_modes.md
+
 
 # IntelliJ related
 *.iml

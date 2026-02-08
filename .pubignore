@@ -26,3 +26,12 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+log.txt
+
+# Claude Code
+CLAUDE.md
+
+# Guides and docs (excluded for now)
+example/MODE_SELECTOR_GUIDE*.md
+example/TROUBLESHOOTING.md
+example/test_modes.md

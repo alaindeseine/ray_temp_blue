@@ -1,3 +1,12 @@
+## 1.0.1+stable
+
+### Maintenance Release
+
+* Updated `flutter_lints` to ^6.0.0
+* Added MIT license
+* Fixed repository URLs in pubspec.yaml
+* Package cleanup for pub.dev publication
+
 ## 1.0.0+stable
 
 ### Stable Release - Production Ready

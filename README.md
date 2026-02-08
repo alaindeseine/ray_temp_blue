@@ -461,4 +461,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-For issues and feature requests, please use the [GitHub issue tracker](https://github.com/your-org/ray_temp_blue/issues).
+For issues and feature requests, please use the [GitHub issue tracker](https://github.com/alaindeseine/ray_temp_blue/issues).
