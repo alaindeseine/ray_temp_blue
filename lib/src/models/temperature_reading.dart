@@ -36,6 +36,16 @@ class TemperatureReading {
     }
   }
 
+  /// Returns the temperature converted to the requested [unit].
+  double toUnit(TemperatureUnit unit) {
+    switch (unit) {
+      case TemperatureUnit.celsius:
+        return toCelsius();
+      case TemperatureUnit.fahrenheit:
+        return toFahrenheit();
+    }
+  }
+
   @override
   String toString() {
     return 'TemperatureReading(value: ${value.toStringAsFixed(1)}°C, '

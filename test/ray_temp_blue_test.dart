@@ -75,6 +75,26 @@ void main() {
       expect(reading.toString(), contains('2024-01-01'));
     });
 
+    test('toUnit should convert correctly to any target unit', () {
+      final celsiusReading = TemperatureReading(
+        value: 25.0,
+        originalUnit: TemperatureUnit.celsius,
+        timestamp: DateTime.now(),
+      );
+
+      expect(celsiusReading.toUnit(TemperatureUnit.celsius), 25.0);
+      expect(celsiusReading.toUnit(TemperatureUnit.fahrenheit), 77.0);
+
+      final fahrenheitReading = TemperatureReading(
+        value: 100.0,
+        originalUnit: TemperatureUnit.fahrenheit,
+        timestamp: DateTime.now(),
+      );
+
+      expect(fahrenheitReading.toUnit(TemperatureUnit.celsius), 100.0);
+      expect(fahrenheitReading.toUnit(TemperatureUnit.fahrenheit), 212.0);
+    });
+
     test('should implement equality correctly', () {
       final timestamp = DateTime.now();
       final reading1 = TemperatureReading(
@@ -107,6 +127,30 @@ void main() {
     test('should have correct display names', () {
       expect(TemperatureUnit.celsius.displayName, 'Celsius');
       expect(TemperatureUnit.fahrenheit.displayName, 'Fahrenheit');
+    });
+  });
+
+  group('RayTempBlue / RayTempBlueHold constructors', () {
+    test('RayTempBlue instantiates without preferredUnit', () {
+      final instance = RayTempBlue();
+      expect(instance.isConnected, false);
+      expect(instance.deviceUnit, TemperatureUnit.celsius);
+    });
+
+    test('RayTempBlue instantiates with preferredUnit', () {
+      final instance = RayTempBlue(preferredUnit: TemperatureUnit.fahrenheit);
+      expect(instance.isConnected, false);
+    });
+
+    test('RayTempBlueHold instantiates without preferredUnit', () {
+      final instance = RayTempBlueHold();
+      expect(instance.isConnected, false);
+      expect(instance.deviceUnit, TemperatureUnit.celsius);
+    });
+
+    test('RayTempBlueHold instantiates with preferredUnit', () {
+      final instance = RayTempBlueHold(preferredUnit: TemperatureUnit.fahrenheit);
+      expect(instance.isConnected, false);
     });
   });
 

@@ -44,7 +44,17 @@ class RayTempBlueHold {
 
   bool _isConnected = false;
   TemperatureUnit _currentUnit = TemperatureUnit.celsius;
+  final TemperatureUnit? _preferredUnit;
   bool _waitingForMeasurement = false;
+
+  /// Creates a new RayTempBlueHold instance.
+  ///
+  /// If [preferredUnit] is provided, the connected thermometer will be
+  /// configured to use that unit on connect — but only when it differs
+  /// from the device's current unit (the thermometer's flash memory is
+  /// limited to 10,000 write cycles, so avoid toggling the unit per
+  /// measurement; use [setDeviceUnit] for user-preference changes only).
+  RayTempBlueHold({TemperatureUnit? preferredUnit}) : _preferredUnit = preferredUnit;
 
   /// Stream of temperature readings from the device (only when button pressed or manually triggered).
   Stream<TemperatureReading> get temperatureStream => _temperatureController.stream;
@@ -57,6 +67,9 @@ class RayTempBlueHold {
 
   /// Whether the device is waiting for a measurement.
   bool get isWaitingForMeasurement => _waitingForMeasurement;
+
+  /// The temperature unit currently configured on the connected device.
+  TemperatureUnit get deviceUnit => _currentUnit;
 
   /// The currently connected device, if any.
   RayTempDevice? get connectedDevice {
@@ -305,6 +318,11 @@ class RayTempBlueHold {
       // Read current instrument settings
       await _readInstrumentSettings();
 
+      // Apply preferred unit if explicitly requested and different from device
+      if (_preferredUnit != null && _preferredUnit != _currentUnit) {
+        await _writeInstrumentUnit(_preferredUnit);
+      }
+
       // Enable notifications for button press detection and sensor readings
       await _enableNotifications();
 
@@ -384,6 +402,38 @@ class RayTempBlueHold {
     disconnect();
     _temperatureController.close();
     _connectionStatusController.close();
+  }
+
+  /// Writes a new temperature unit to the device, preserving all other
+  /// instrument settings (measurement interval, auto-off, emissivity, …).
+  ///
+  /// ⚠️ Each call writes to the device's flash memory (10,000 cycles
+  /// endurance). Prefer calling this only on explicit user intent.
+  Future<void> setDeviceUnit(TemperatureUnit unit) async {
+    if (!_isConnected || _settingsCharacteristic == null) {
+      throw const RayTempConnectionException('Device not connected');
+    }
+    if (_currentUnit == unit) return;
+    await _writeInstrumentUnit(unit);
+  }
+
+  /// Writes only the unit byte of the instrument settings, preserving the
+  /// 7 other bytes. No-op if already in the requested unit.
+  Future<void> _writeInstrumentUnit(TemperatureUnit unit) async {
+    if (_settingsCharacteristic == null) return;
+
+    final current = await _settingsCharacteristic!.read();
+    if (current.isEmpty) {
+      throw const RayTempDataException(
+        'Failed to read current instrument settings',
+      );
+    }
+
+    final updated = List<int>.from(current);
+    updated[0] = unit == TemperatureUnit.fahrenheit ? 0x01 : 0x00;
+
+    await _settingsCharacteristic!.write(updated);
+    _currentUnit = unit;
   }
 
   /// Reads the instrument settings to determine the current temperature unit.
