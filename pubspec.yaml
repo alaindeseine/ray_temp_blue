@@ -7,13 +7,13 @@ issue_tracker: https://github.com/alaindeseine/ray_temp_blue/issues
 
 environment:
   sdk: ^3.8.1
-  flutter: ">=3.0.0"
+  flutter: ">=3.32.0"
 
 dependencies:
   flutter:
     sdk: flutter
   flutter_blue_plus: ^1.35.5
-  permission_handler: ^12.0.1
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:
