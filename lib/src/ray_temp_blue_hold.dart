@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue_ultra/flutter_blue_ultra.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'models/temperature_reading.dart';
@@ -72,12 +72,12 @@ class RayTempBlueHold {
   /// Verifies and requests necessary Bluetooth permissions.
   Future<void> verifyPermissions() async {
     // Check if Bluetooth is supported
-    if (!await FlutterBluePlus.isSupported) {
+    if (!await FlutterBlueUltra.isSupported) {
       throw const RayTempBluetoothException('Bluetooth is not supported on this device');
     }
 
     // Check if Bluetooth is enabled
-    final bluetoothState = await FlutterBluePlus.adapterState.first;
+    final bluetoothState = await FlutterBlueUltra.adapterState.first;
     if (bluetoothState != BluetoothAdapterState.on) {
       throw const RayTempBluetoothException('Bluetooth is disabled. Please enable Bluetooth and try again.');
     }
@@ -171,7 +171,7 @@ class RayTempBlueHold {
 
     try {
       // Listen for scan results
-      final subscription = FlutterBluePlus.scanResults.listen((results) {
+      final subscription = FlutterBlueUltra.scanResults.listen((results) {
         for (final result in results) {
           final deviceName = result.device.platformName;
           if (RayTempDevice.isRayTempBlue(deviceName)) {
@@ -185,7 +185,7 @@ class RayTempBlueHold {
       });
 
       // Start scanning
-      await FlutterBluePlus.startScan(timeout: timeout);
+      await FlutterBlueUltra.startScan(timeout: timeout);
 
       // Wait for scan to complete
       Timer(timeout, () {
@@ -196,7 +196,7 @@ class RayTempBlueHold {
 
       await completer.future;
       await subscription.cancel();
-      await FlutterBluePlus.stopScan();
+      await FlutterBlueUltra.stopScan();
 
       return devices;
     } catch (e) {

@@ -1,4 +1,4 @@
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue_ultra/flutter_blue_ultra.dart';
 
 /// Represents a discovered Ray Temp Blue device.
 class RayTempDevice {
