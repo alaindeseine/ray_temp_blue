@@ -1,3 +1,52 @@
+## 1.1.0
+
+### Features
+
+* **Device/app unit synchronization** — new API to keep the thermometer's
+  physical display in sync with the user's app preference:
+  * `RayTempBlue({TemperatureUnit? preferredUnit})` and
+    `RayTempBlueHold({TemperatureUnit? preferredUnit})` constructors —
+    the device is reconfigured on connect only when its current unit
+    differs from `preferredUnit`
+  * `deviceUnit` getter — read the unit currently stored on the thermometer
+  * `setDeviceUnit(TemperatureUnit unit)` — change the device unit at
+    runtime, with a write-only-if-different guard that preserves the
+    thermometer's 10,000-cycle flash memory
+  * `TemperatureReading.toUnit(TemperatureUnit unit)` — generic
+    conversion helper (alongside the existing `toCelsius` / `toFahrenheit`
+    / `toKelvin`)
+
+### Changed
+
+* **BLE backend swapped from `flutter_blue_plus` to `flutter_blue_ultra`**
+  (BSD-3-Clause fork of `flutter_blue_plus` 1.x by Intent). The
+  `flutter_blue_plus` 2.x license switched to a restrictive model
+  requiring paid commercial licenses for all for-profit use.
+  `flutter_blue_ultra` keeps the familiar 1.x API under BSD, so no
+  licensing trap for consumers of this package.
+* `permission_handler` bumped: `^12.0.1` → `^13.0.2`.
+* Minimum Flutter SDK: `>=3.0.0` → `>=3.32.0` (required by `flutter_lints`
+  6, aligned across root and example packages).
+* `example/pubspec.yaml`: `flutter_lints` `^5.0.0` → `^6.0.0`.
+
+### Compatibility
+
+* **Public API unchanged**: `RayTempBlue`, `RayTempBlueHold`,
+  `RayTempDevice`, `TemperatureReading`, `TemperatureUnit`, and the full
+  `RayTempException` hierarchy keep their existing signatures. New
+  constructor parameters are optional with safe defaults.
+* Downstream apps that only consumed this package's API need no code
+  changes. Apps that imported `flutter_blue_plus` directly alongside this
+  package must switch their own import to `flutter_blue_ultra`
+  (`flutter_blue_ultra` and `flutter_blue_plus` cannot coexist in the
+  same project).
+
+### Tests
+
+* Added 5 unit tests covering `TemperatureReading.toUnit()` and both
+  constructors (with and without `preferredUnit`). Total: 21 tests, all
+  passing.
+
 ## 1.0.1+stable
 
 ### Maintenance Release

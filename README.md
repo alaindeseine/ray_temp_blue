@@ -51,7 +51,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ray_temp_blue: ^1.0.0
+  ray_temp_blue: ^1.1.0
 ```
 
 ### Android Configuration
