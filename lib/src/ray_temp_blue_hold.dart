@@ -360,7 +360,7 @@ class RayTempBlueHold {
 
       // Send the manual measurement command
       final command = _encodeCommand(_measureCommand);
-      await _commandCharacteristic!.write(command);
+      await _writeCharacteristic(_commandCharacteristic!, command);
 
       // Wait a bit for the measurement to be taken
       await Future.delayed(const Duration(milliseconds: 500));
@@ -391,7 +391,7 @@ class RayTempBlueHold {
 
     try {
       final command = _encodeCommand(_identifyCommand);
-      await _commandCharacteristic!.write(command);
+      await _writeCharacteristic(_commandCharacteristic!, command);
     } catch (e) {
       throw RayTempConnectionException('Failed to identify device', null, e);
     }
@@ -432,8 +432,30 @@ class RayTempBlueHold {
     final updated = List<int>.from(current);
     updated[0] = unit == TemperatureUnit.fahrenheit ? 0x01 : 0x00;
 
-    await _settingsCharacteristic!.write(updated);
+    await _writeCharacteristic(_settingsCharacteristic!, updated);
     _currentUnit = unit;
+  }
+
+  /// Writes to a characteristic using whichever write mode the firmware
+  /// actually advertises on it. Some BlueTherm firmware variants expose
+  /// `writeWithoutResponse` only on the settings characteristic (…AD709),
+  /// while command/notifications (…AD705) advertises `write`. Picking the
+  /// mode from `properties` keeps a single API call working on both.
+  Future<void> _writeCharacteristic(
+    BluetoothCharacteristic characteristic,
+    List<int> data,
+  ) async {
+    final props = characteristic.properties;
+    if (props.write) {
+      await characteristic.write(data);
+    } else if (props.writeWithoutResponse) {
+      await characteristic.write(data, withoutResponse: true);
+    } else {
+      throw RayTempDataException(
+        'Characteristic ${characteristic.uuid} is not writable',
+        data,
+      );
+    }
   }
 
   /// Reads the instrument settings to determine the current temperature unit.

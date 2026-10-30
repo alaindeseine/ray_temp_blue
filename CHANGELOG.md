@@ -1,3 +1,18 @@
+## 1.1.1
+
+### Fixed
+
+* **BLE write mode on the instrument settings characteristic (…AD709).**
+  The BlueTherm firmware exposes the settings characteristic in
+  `writeWithoutResponse` mode only, while the command characteristic
+  (…AD705) exposes `write` (with response). The previous release called
+  `write(bytes)` on both, which raised `PlatformException: The WRITE
+  property is not supported by this BLE characteristic` the first time
+  `setDeviceUnit()` (or the connect-time `preferredUnit` sync) tried to
+  update the device. Both `RayTempBlue` and `RayTempBlueHold` now pick
+  the write mode from the characteristic's advertised GATT properties,
+  so `setDeviceUnit()` and `preferredUnit` work on the real hardware.
+
 ## 1.1.0
 
 ### Features
