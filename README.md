@@ -11,6 +11,7 @@ A Flutter package for interfacing with Ray Temp Blue Bluetooth LE thermometer de
 - 🎯 **Manual triggering** - Programmatically trigger measurements
 - 🔍 **Device identification** - Make the device flash its LEDs for identification
 - 📊 **Unit conversion** - Support for Celsius and Fahrenheit with conversion methods
+- 🔁 **Device/app unit sync** - Push the user's preferred unit (°C/°F) down to the thermometer with a flash-aware guard
 - ⚡ **Exception handling** - Comprehensive error handling with specific exception types
 - 🔌 **Connection monitoring** - Real-time connection status with automatic reconnection
 - 🔄 **Auto-reconnection** - Intelligent reconnection when connection is lost (HOLD mode)
@@ -40,7 +41,7 @@ This package is designed for Ray Temp Blue infrared thermometer devices that use
 
 ### Prerequisites
 
-- Flutter 3.0.0 or higher
+- Flutter 3.32.0 or higher
 - Android device with Bluetooth LE support
 - Ray Temp Blue thermometer device
 
@@ -270,10 +271,38 @@ rayTempBlue.temperatureStream.listen((reading) {
   print('Temperature: ${reading.value.toStringAsFixed(1)}°C');
   print('In Fahrenheit: ${reading.toFahrenheit().toStringAsFixed(1)}°F');
   print('In Kelvin: ${reading.toKelvin().toStringAsFixed(1)}K');
+  print('Converted to user preference: '
+        '${reading.toUnit(userUnit).toStringAsFixed(1)}${userUnit.symbol}');
   print('Original unit: ${reading.originalUnit.displayName}');
   print('Timestamp: ${reading.timestamp}');
 });
 ```
+
+#### Device/App Unit Synchronization
+
+The thermometer stores its unit in flash memory (°C or °F). When the user
+picks a unit in your app, you can push that preference down to the device
+so its physical display matches the app.
+
+```dart
+// Option A — pass the preferred unit at construction. On connect, the
+// device unit will be aligned if (and only if) it differs.
+final rayTemp = RayTempBlueHold(preferredUnit: TemperatureUnit.fahrenheit);
+await rayTemp.connect(device);
+
+// Option B — change the unit at runtime (e.g. when the user toggles the
+// preference). Safe to call: the write is skipped if already in the
+// requested unit.
+await rayTemp.setDeviceUnit(TemperatureUnit.celsius);
+
+// Read the current device unit at any time.
+print('Device is in ${rayTemp.deviceUnit.displayName}');
+```
+
+> ⚠️ **Flash memory warning** — the device's settings live in flash with a
+> ~10,000 write-cycle endurance. Only call `setDeviceUnit()` when the user
+> actually changes their preference, never per measurement. The
+> write-only-if-different guard protects against accidental repeats.
 
 #### Connection Status Monitoring
 
@@ -341,10 +370,15 @@ try {
 
 Main class for continuous temperature monitoring.
 
+#### Constructor
+
+- `RayTempBlue({TemperatureUnit? preferredUnit})` - Create an instance. If `preferredUnit` is provided, the device is reconfigured on connect (only if it differs — see flash warning).
+
 #### Properties
 
 - `Stream<TemperatureReading> temperatureStream` - Stream of temperature readings
 - `bool isConnected` - Whether a device is currently connected
+- `TemperatureUnit deviceUnit` - Unit currently configured on the thermometer
 - `RayTempDevice? connectedDevice` - Currently connected device information
 
 #### Methods
@@ -354,6 +388,7 @@ Main class for continuous temperature monitoring.
 - `Future<void> connect(RayTempDevice device)` - Connect to a specific device
 - `Future<void> disconnect()` - Disconnect from current device
 - `Future<void> triggerMeasurement()` - Manually trigger a measurement
+- `Future<void> setDeviceUnit(TemperatureUnit unit)` - Change the unit on the device (write-only-if-different)
 - `Future<void> identifyDevice()` - Make device flash LEDs for identification
 - `void dispose()` - Clean up resources
 
@@ -361,12 +396,17 @@ Main class for continuous temperature monitoring.
 
 Class for manual temperature measurements with connection monitoring.
 
+#### Constructor
+
+- `RayTempBlueHold({TemperatureUnit? preferredUnit})` - Create an instance. If `preferredUnit` is provided, the device is reconfigured on connect (only if it differs — see flash warning).
+
 #### Properties
 
 - `Stream<TemperatureReading> temperatureStream` - Stream of temperature readings (manual only)
 - `Stream<bool> connectionStatusStream` - Stream of connection status changes
 - `bool isConnected` - Whether a device is currently connected
 - `bool isWaitingForMeasurement` - Whether a measurement is in progress
+- `TemperatureUnit deviceUnit` - Unit currently configured on the thermometer
 - `RayTempDevice? connectedDevice` - Currently connected device information
 
 #### Methods
@@ -378,6 +418,7 @@ Class for manual temperature measurements with connection monitoring.
 - `Future<void> connectByMacAddress(String macAddress, {Duration timeout})` - Connect by MAC address
 - `Future<void> disconnect()` - Disconnect from current device
 - `Future<TemperatureReading> triggerMeasurement()` - Manually trigger and return measurement
+- `Future<void> setDeviceUnit(TemperatureUnit unit)` - Change the unit on the device (write-only-if-different)
 - `Future<void> identifyDevice()` - Make device flash LEDs for identification
 - `void dispose()` - Clean up resources
 
@@ -396,6 +437,7 @@ Represents a temperature measurement from the device.
 - `double toCelsius()` - Convert to Celsius (returns value as-is)
 - `double toFahrenheit()` - Convert to Fahrenheit
 - `double toKelvin()` - Convert to Kelvin
+- `double toUnit(TemperatureUnit unit)` - Convert to any target unit
 - `double toOriginalUnit()` - Convert to the device's original unit
 
 ### RayTempDevice
