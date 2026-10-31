@@ -1,3 +1,44 @@
+## 2.0.0
+
+### Breaking changes
+
+* **`TemperatureReading.value` is now in the device's current display
+  unit, not always Celsius.** Previously the package re-converted
+  Fahrenheit readings to Celsius before exposing them, which forced
+  consumers to call `toOriginalUnit()` / `toUnit()` just to get back
+  what the thermometer displays. Starting with 2.0.0, `value` holds the
+  reading as the device sent it (°C when the device is set to Celsius,
+  °F when set to Fahrenheit), and `originalUnit` matches it. Code that
+  reads `reading.value` and treated it as Celsius must now call
+  `reading.toCelsius()` explicitly.
+* `TemperatureReading.toCelsius()` and `toFahrenheit()` now convert from
+  `originalUnit` to the target unit (previously `toCelsius()` returned
+  `value` unchanged and `toFahrenheit()` always applied a C→F conversion).
+* `TemperatureReading.toOriginalUnit()` now simply returns `value`
+  (previously it converted). The method is kept for API compatibility;
+  prefer reading `value` directly.
+* `TemperatureReading.toString()` now uses `originalUnit.symbol`
+  (previously hard-coded `°C`).
+
+### Migration
+
+```dart
+// Before (1.x) — value was always Celsius
+final c = reading.value;              // °C regardless of device unit
+final f = reading.toOriginalUnit();   // °F if device in °F, else °C
+
+// After (2.0) — value is in originalUnit
+final native = reading.value;         // °C or °F, matches originalUnit
+final c = reading.toCelsius();        // explicit convert
+final f = reading.toFahrenheit();     // explicit convert
+```
+
+### Tests
+
+* Rewrote the `TemperatureReading` conversion suite to exercise both
+  source units (°C and °F) for `toCelsius`, `toFahrenheit`, `toKelvin`,
+  `toUnit` and `toString`. Total: 21 tests, all passing.
+
 ## 1.1.1
 
 ### Fixed

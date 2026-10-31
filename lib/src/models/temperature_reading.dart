@@ -1,11 +1,16 @@
 /// Represents a temperature reading from the Ray Temp Blue device.
 class TemperatureReading {
-  /// The temperature value in Celsius.
+  /// The raw temperature value, expressed in [originalUnit] — the unit
+  /// the thermometer was displaying when the reading was taken.
+  ///
+  /// Use [toCelsius], [toFahrenheit], [toKelvin] or [toUnit] to convert
+  /// to a specific unit.
   final double value;
-  
-  /// The original unit from the device.
+
+  /// The temperature unit of [value] — i.e. the device's current display
+  /// unit at the moment of the reading.
   final TemperatureUnit originalUnit;
-  
+
   /// The timestamp when the measurement was taken.
   final DateTime timestamp;
 
@@ -17,24 +22,31 @@ class TemperatureReading {
   });
 
   /// Converts the temperature to Celsius.
-  /// Returns the value as-is since we always work in Celsius internally.
-  double toCelsius() => value;
-
-  /// Converts the temperature to Fahrenheit.
-  double toFahrenheit() => (value * 9 / 5) + 32;
-
-  /// Converts the temperature to Kelvin.
-  double toKelvin() => value + 273.15;
-
-  /// Returns the temperature in the original unit from the device.
-  double toOriginalUnit() {
+  double toCelsius() {
     switch (originalUnit) {
       case TemperatureUnit.celsius:
         return value;
       case TemperatureUnit.fahrenheit:
-        return toFahrenheit();
+        return (value - 32) * 5 / 9;
     }
   }
+
+  /// Converts the temperature to Fahrenheit.
+  double toFahrenheit() {
+    switch (originalUnit) {
+      case TemperatureUnit.celsius:
+        return (value * 9 / 5) + 32;
+      case TemperatureUnit.fahrenheit:
+        return value;
+    }
+  }
+
+  /// Converts the temperature to Kelvin.
+  double toKelvin() => toCelsius() + 273.15;
+
+  /// Returns the temperature in [originalUnit] — same as [value].
+  /// Kept for API compatibility; prefer reading [value] directly.
+  double toOriginalUnit() => value;
 
   /// Returns the temperature converted to the requested [unit].
   double toUnit(TemperatureUnit unit) {
@@ -48,8 +60,9 @@ class TemperatureReading {
 
   @override
   String toString() {
-    return 'TemperatureReading(value: ${value.toStringAsFixed(1)}°C, '
-           'originalUnit: $originalUnit, timestamp: $timestamp)';
+    return 'TemperatureReading(value: ${value.toStringAsFixed(1)}'
+           '${originalUnit.symbol}, originalUnit: $originalUnit, '
+           'timestamp: $timestamp)';
   }
 
   @override

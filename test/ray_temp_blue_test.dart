@@ -16,83 +16,106 @@ void main() {
       expect(reading.timestamp, timestamp);
     });
 
-    test('should convert Celsius to Fahrenheit correctly', () {
-      final reading = TemperatureReading(
+    test('toFahrenheit converts correctly from both source units', () {
+      final celsius = TemperatureReading(
         value: 25.0,
         originalUnit: TemperatureUnit.celsius,
         timestamp: DateTime.now(),
       );
+      expect(celsius.toFahrenheit(), 77.0);
 
-      expect(reading.toFahrenheit(), 77.0);
+      final fahrenheit = TemperatureReading(
+        value: 77.0,
+        originalUnit: TemperatureUnit.fahrenheit,
+        timestamp: DateTime.now(),
+      );
+      expect(fahrenheit.toFahrenheit(), 77.0);
     });
 
-    test('should convert Celsius to Kelvin correctly', () {
-      final reading = TemperatureReading(
+    test('toCelsius converts correctly from both source units', () {
+      final celsius = TemperatureReading(
         value: 25.0,
         originalUnit: TemperatureUnit.celsius,
         timestamp: DateTime.now(),
       );
+      expect(celsius.toCelsius(), 25.0);
 
-      expect(reading.toKelvin(), 298.15);
+      final fahrenheit = TemperatureReading(
+        value: 77.0,
+        originalUnit: TemperatureUnit.fahrenheit,
+        timestamp: DateTime.now(),
+      );
+      expect(fahrenheit.toCelsius(), closeTo(25.0, 1e-9));
     });
 
-    test('should return original value for toCelsius', () {
-      final reading = TemperatureReading(
+    test('toKelvin converts correctly from both source units', () {
+      final celsius = TemperatureReading(
         value: 25.0,
         originalUnit: TemperatureUnit.celsius,
         timestamp: DateTime.now(),
       );
+      expect(celsius.toKelvin(), 298.15);
 
-      expect(reading.toCelsius(), 25.0);
+      final fahrenheit = TemperatureReading(
+        value: 77.0,
+        originalUnit: TemperatureUnit.fahrenheit,
+        timestamp: DateTime.now(),
+      );
+      expect(fahrenheit.toKelvin(), closeTo(298.15, 1e-9));
     });
 
-    test('should return correct original unit value', () {
-      final celsiusReading = TemperatureReading(
+    test('toOriginalUnit returns value as-is', () {
+      final celsius = TemperatureReading(
         value: 25.0,
         originalUnit: TemperatureUnit.celsius,
         timestamp: DateTime.now(),
       );
-
-      final fahrenheitReading = TemperatureReading(
-        value: 25.0,
+      final fahrenheit = TemperatureReading(
+        value: 75.0,
         originalUnit: TemperatureUnit.fahrenheit,
         timestamp: DateTime.now(),
       );
 
-      expect(celsiusReading.toOriginalUnit(), 25.0);
-      expect(fahrenheitReading.toOriginalUnit(), 77.0);
+      expect(celsius.toOriginalUnit(), 25.0);
+      expect(fahrenheit.toOriginalUnit(), 75.0);
     });
 
-    test('should have correct string representation', () {
-      final reading = TemperatureReading(
+    test('toString uses the originalUnit symbol', () {
+      final celsius = TemperatureReading(
         value: 25.5,
         originalUnit: TemperatureUnit.celsius,
         timestamp: DateTime.parse('2024-01-01 12:00:00'),
       );
+      expect(celsius.toString(), contains('25.5°C'));
+      expect(celsius.toString(), contains('celsius'));
+      expect(celsius.toString(), contains('2024-01-01'));
 
-      expect(reading.toString(), contains('25.5°C'));
-      expect(reading.toString(), contains('celsius'));
-      expect(reading.toString(), contains('2024-01-01'));
+      final fahrenheit = TemperatureReading(
+        value: 75.0,
+        originalUnit: TemperatureUnit.fahrenheit,
+        timestamp: DateTime.parse('2024-01-01 12:00:00'),
+      );
+      expect(fahrenheit.toString(), contains('75.0°F'));
+      expect(fahrenheit.toString(), contains('fahrenheit'));
     });
 
-    test('toUnit should convert correctly to any target unit', () {
-      final celsiusReading = TemperatureReading(
+    test('toUnit converts correctly in both directions', () {
+      final celsius = TemperatureReading(
         value: 25.0,
         originalUnit: TemperatureUnit.celsius,
         timestamp: DateTime.now(),
       );
+      expect(celsius.toUnit(TemperatureUnit.celsius), 25.0);
+      expect(celsius.toUnit(TemperatureUnit.fahrenheit), 77.0);
 
-      expect(celsiusReading.toUnit(TemperatureUnit.celsius), 25.0);
-      expect(celsiusReading.toUnit(TemperatureUnit.fahrenheit), 77.0);
-
-      final fahrenheitReading = TemperatureReading(
-        value: 100.0,
+      final fahrenheit = TemperatureReading(
+        value: 75.0,
         originalUnit: TemperatureUnit.fahrenheit,
         timestamp: DateTime.now(),
       );
-
-      expect(fahrenheitReading.toUnit(TemperatureUnit.celsius), 100.0);
-      expect(fahrenheitReading.toUnit(TemperatureUnit.fahrenheit), 212.0);
+      expect(fahrenheit.toUnit(TemperatureUnit.celsius),
+          closeTo(23.888888, 1e-5));
+      expect(fahrenheit.toUnit(TemperatureUnit.fahrenheit), 75.0);
     });
 
     test('should implement equality correctly', () {

@@ -51,7 +51,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ray_temp_blue: ^1.1.0
+  ray_temp_blue: ^2.0.0
 ```
 
 ### Android Configuration
@@ -111,7 +111,7 @@ class _ContinuousTemperatureScreenState extends State<ContinuousTemperatureScree
         _temperatureSubscription = _rayTempBlue.temperatureStream.listen(
           (reading) {
             setState(() {
-              _temperatureController.text = '${reading.value.toStringAsFixed(1)}°C';
+              _temperatureController.text = '${reading.value.toStringAsFixed(1)}${reading.originalUnit.symbol}';
             });
           },
         );
@@ -190,7 +190,7 @@ class _HoldTemperatureScreenState extends State<HoldTemperatureScreen> {
         _temperatureSubscription = _rayTempBlue.temperatureStream.listen(
           (reading) {
             setState(() {
-              _temperatureController.text = '${reading.value.toStringAsFixed(1)}°C';
+              _temperatureController.text = '${reading.value.toStringAsFixed(1)}${reading.originalUnit.symbol}';
             });
           },
         );
@@ -204,7 +204,7 @@ class _HoldTemperatureScreenState extends State<HoldTemperatureScreen> {
     try {
       final reading = await _rayTempBlue.triggerMeasurement();
       setState(() {
-        _temperatureController.text = '${reading.value.toStringAsFixed(1)}°C';
+        _temperatureController.text = '${reading.value.toStringAsFixed(1)}${reading.originalUnit.symbol}';
       });
     } catch (e) {
       print('Measurement error: $e');
@@ -268,12 +268,13 @@ await rayTempBlue.connect(selectedDevice);
 
 ```dart
 rayTempBlue.temperatureStream.listen((reading) {
-  print('Temperature: ${reading.value.toStringAsFixed(1)}°C');
+  // reading.value is in reading.originalUnit (the device's display unit)
+  print('Device reading: ${reading.value.toStringAsFixed(1)}${reading.originalUnit.symbol}');
+  print('In Celsius: ${reading.toCelsius().toStringAsFixed(1)}°C');
   print('In Fahrenheit: ${reading.toFahrenheit().toStringAsFixed(1)}°F');
   print('In Kelvin: ${reading.toKelvin().toStringAsFixed(1)}K');
   print('Converted to user preference: '
         '${reading.toUnit(userUnit).toStringAsFixed(1)}${userUnit.symbol}');
-  print('Original unit: ${reading.originalUnit.displayName}');
   print('Timestamp: ${reading.timestamp}');
 });
 ```
@@ -428,17 +429,17 @@ Represents a temperature measurement from the device.
 
 #### Properties
 
-- `double value` - Temperature value in Celsius
-- `TemperatureUnit originalUnit` - Original unit from the device
+- `double value` - Temperature value, expressed in `originalUnit` (the device's display unit at the time of the reading). **Not normalized to Celsius.**
+- `TemperatureUnit originalUnit` - Device display unit at the time of the reading
 - `DateTime timestamp` - When the measurement was taken
 
 #### Methods
 
-- `double toCelsius()` - Convert to Celsius (returns value as-is)
-- `double toFahrenheit()` - Convert to Fahrenheit
-- `double toKelvin()` - Convert to Kelvin
-- `double toUnit(TemperatureUnit unit)` - Convert to any target unit
-- `double toOriginalUnit()` - Convert to the device's original unit
+- `double toCelsius()` - Convert the reading to Celsius
+- `double toFahrenheit()` - Convert the reading to Fahrenheit
+- `double toKelvin()` - Convert the reading to Kelvin
+- `double toUnit(TemperatureUnit unit)` - Convert the reading to any target unit
+- `double toOriginalUnit()` - Returns `value` as-is (same as reading the field directly)
 
 ### RayTempDevice
 

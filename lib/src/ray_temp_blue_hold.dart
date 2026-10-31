@@ -516,15 +516,12 @@ class RayTempBlueHold {
       );
     }
 
-    // Convert to Celsius if needed
-    double temperatureInCelsius = rawValue;
-    if (_currentUnit == TemperatureUnit.fahrenheit) {
-      temperatureInCelsius = (rawValue - 32) * 5 / 9;
-    }
-
-    // Create temperature reading
+    // The sensor characteristic returns the reading in the device's
+    // current display unit (empirical BlueTherm firmware behavior).
+    // Expose it as-is; consumers can convert via toCelsius/toFahrenheit/
+    // toUnit if they need a different unit.
     return TemperatureReading(
-      value: temperatureInCelsius,
+      value: rawValue,
       originalUnit: _currentUnit,
       timestamp: DateTime.now(),
     );
